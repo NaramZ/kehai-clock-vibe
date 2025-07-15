@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Abstract / Digital Clock</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="clock" id="clockElement">
+      <div class="frosted-glass">
+        <div class="reflection"></div>
+        <div class="shimmer"></div>
+      </div>
+      <div class="rays"></div>
+      <div class="hand hour" id="hourHand"></div>
+      <div class="hand minute" id="minuteHand"></div>
+      <div class="red-dot-wrapper" id="redDotWrapper">
+        <div class="red-dot" id="redDot"></div>
+      </div>
+      <div class="second" id="secondHand"></div>
+
+      <div class="digital-display" id="digitalDisplay"></div>
+    </div>
+
+    <div class="toggle-controls">
+      <button id="toggleControlsBtn">Toggle Controls</button>
+    </div>
+
+    <div class="controls" id="controlsPanel">
+      <div class="control-group">
+        <label for="manualHour">Manually Set Hour:</label>
+        <input type="range" id="manualHour" min="0" max="23" value="0" />
+      </div>
+
+      <div class="control-group">
+        <label for="manualMinute">Manually Set Minute:</label>
+        <input type="range" id="manualMinute" min="0" max="59" value="0" />
+      </div>
+
+      <div class="control-group">
+        <label for="timeZone">Time Zone</label>
+        <select id="timeZone">
+          <option value="America/New_York">New York</option>
+          <option value="Europe/London">London</option>
+          <option value="Asia/Tokyo">Tokyo</option>
+          <option value="Asia/Dubai">Dubai</option>
+          <option value="Asia/Beirut" selected>Beirut</option>
+          <option value="auto">Auto (Browser)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="dotColor">Dot Color</label>
+        <select id="dotColor">
+          <option value="#C1716E" selected>Default Red</option>
+          <option value="#6EC171">Green</option>
+          <option value="#716EC1">Blue</option>
+          <option value="#C1B56E">Yellow</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="grainLevel">Grain Level</label>
+        <input
+          type="range"
+          id="grainLevel"
+          min="0"
+          max="0.1"
+          step="0.005"
+          value="0.03"
+        />
+      </div>
+
+      <div class="control-group">
+        <label for="blurLevel">Blur Level</label>
+        <input
+          type="range"
+          id="blurLevel"
+          min="0"
+          max="20"
+          step="1"
+          value="10"
+        />
+      </div>
+
+      <div class="control-group">
+        <label for="dotBlur">Red Dot Blur</label>
+        <input type="range" id="dotBlur" min="0" max="5" step="0.1" value="1" />
+      </div>
+
+      <div class="control-group">
+        <label for="digitalMode">Digital Mode</label>
+        <button id="digitalModeBtn">Toggle Digital Mode</button>
+      </div>
+    </div>
+
+    <script>
+      // --- DOM Element References ---
+      const hourHand = document.getElementById("hourHand");
+      const minuteHand = document.getElementById("minuteHand");
+      const secondHand = document.getElementById("secondHand"); // Still referenced for consistency, though its opacity is handled by CSS
+      const redDotWrapper = document.getElementById("redDotWrapper");
+      const redDot = document.getElementById("redDot");
+      const toggleControlsBtn = document.getElementById("toggleControlsBtn");
+      const controlsPanel = document.getElementById("controlsPanel");
+      const manualHourInput = document.getElementById("manualHour");
+      const manualMinuteInput = document.getElementById("manualMinute");
+      const timeZoneSelect = document.getElementById("timeZone");
+      const dotColorSelect = document.getElementById("dotColor");
+      const digitalModeBtn = document.getElementById("digitalModeBtn"); // New button reference
+      const clockElement = document.getElementById("clockElement"); // Changed to getElementById
+      const blurLevelInput = document.getElementById("blurLevel");
+      const grainLevelInput = document.getElementById("grainLevel");
+      const dotBlurInput = document.getElementById("dotBlur");
+      const digitalDisplay = document.getElementById("digitalDisplay"); // New digital display reference
+
+      // --- State Variables ---
+      let manualMode = false;
+      let digitalMode = false; // Start in Abstract Mode by default
+      let selectedTimeZone = timeZoneSelect.value;
+
+      // --- Helper Functions ---
+      function getTimeZoneOffset(timeZone) {
+        const now = new Date();
+        const timeZoneDate = new Date(
+          now.toLocaleString("en-US", { timeZone: timeZone })
+        );
+        const diff = (timeZoneDate.getTime() - now.getTime()) / 3600000; // Difference in hours
+        return diff;
+      }
+
+      function updateCSSVariables() {
+        document.documentElement.style.setProperty(
+          "--dot-color",
+          dotColorSelect.value
+        );
+        document.documentElement.style.setProperty(
+          "--blur-level",
+          blurLevelInput.value + "px"
+        );
+        document.documentElement.style.setProperty(
+          "--grain-opacity",
+          grainLevelInput.value
+        );
+        document.documentElement.style.setProperty(
+          "--dot-blur",
+          dotBlurInput.value + "px"
+        );
+      }
+
+      // --- Main Clock Update Function ---
+      function updateClock() {
+        let now;
+        if (manualMode) {
+          const manualHour = parseInt(manualHourInput.value);
+          const manualMinute = parseInt(manualMinuteInput.value);
+          now = new Date();
+          now.setHours(manualHour, manualMinute, 0, 0);
+        } else {
+          now = new Date();
+          if (selectedTimeZone && selectedTimeZone !== "auto") {
+            const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+            now = new Date(utc + getTimeZoneOffset(selectedTimeZone) * 3600000);
+          }
+        }
+
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        const milliseconds = now.getMilliseconds();
+
+        if (digitalMode) {
+          // DIGITAL MODE LOGIC
+          const displayHours = hours.toString().padStart(2, "0");
+          const displayMinutes = minutes.toString().padStart(2, "0");
+          digitalDisplay.textContent = `${displayHours}:${displayMinutes}`;
+          // Hands and red dot are hidden via CSS when .digital-mode is active
+        } else {
+          // ABSTRACT MODE LOGIC
+          // Removed different positions for hour and minute hands
+          const minuteAngle =
+            minutes * 6 + seconds * 0.1 + milliseconds * 0.0001;
+          const hourAngle =
+            (hours % 12) * 30 + minutes * 0.5 + seconds * (0.5 / 60);
+          const dotAngle = seconds * 6 + milliseconds * 0.006;
+
+          minuteHand.style.transform = `translateX(-50%) rotate(${minuteAngle}deg)`;
+          hourHand.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`; // Hour hand now originates from center bottom
+          redDotWrapper.style.transform = `rotate(${dotAngle}deg)`;
+
+          // Digital display is hidden via CSS when not in .digital-mode
+        }
+      }
+
+      // --- Event Listeners ---
+      manualHourInput.addEventListener("input", () => {
+        manualMode = true;
+        updateClock();
+      });
+      manualMinuteInput.addEventListener("input", () => {
+        manualMode = true;
+        updateClock();
+      });
+
+      timeZoneSelect.addEventListener("change", () => {
+        selectedTimeZone = timeZoneSelect.value;
+        manualMode = false;
+        updateClock();
+      });
+
+      dotColorSelect.addEventListener("change", updateCSSVariables);
+      blurLevelInput.addEventListener("input", updateCSSVariables);
+      grainLevelInput.addEventListener("input", updateCSSVariables);
+      dotBlurInput.addEventListener("input", updateCSSVariables);
+
+      toggleControlsBtn.addEventListener("click", () => {
+        controlsPanel.classList.toggle("hidden");
+      });
+
+      digitalModeBtn.addEventListener("click", () => {
+        digitalMode = !digitalMode;
+        clockElement.classList.toggle("digital-mode", digitalMode);
+        manualMode = false; // Exit manual mode when changing clock display mode
+        updateClock(); // Update display immediately
+      });
+
+      // --- Initial Setup and Interval ---
+      updateCSSVariables();
+      setInterval(updateClock, 10); // Update very frequently for smooth movement
+      updateClock(); // Initial call
+    </script>
+  </body>
+</html>
